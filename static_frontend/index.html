@@ -144,7 +144,16 @@
         <label>Name<input id="reg-name" /></label>
         <label>Age<input id="reg-age" type="number" min="18" /></label>
         <label>Aadhaar (12 digits)<input id="reg-aadhaar" maxlength="12" /></label>
+        <label>Gender
+          <select id="reg-gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label>Constituency<input id="reg-const" /></label>
         <label>Password<input id="reg-pass" type="password" /></label>
+        <p style="color:var(--muted);font-size:12px;margin-top:-6px;">6–8 chars, 1 upper, 1 lower, 1 number, 1 special</p>
         <button onclick="register()">Register</button>
         <div class="message" id="reg-msg"></div>
       </div>
@@ -164,6 +173,7 @@
         <div class="section-title">Cast Vote</div>
         <div id="candidate-list">Loading candidates…</div>
         <button onclick="castVote()" id="vote-btn" disabled>Submit Vote</button>
+        <div class="message" id="vote-status-note" style="border-style: dashed;"></div>
         <div class="message" id="vote-msg"></div>
       </div>
 
@@ -171,6 +181,7 @@
         <div class="section-title">Live Results</div>
         <div id="results-table">No data yet.</div>
         <div class="message" id="tamper-msg"></div>
+        <div class="message" id="tamper-details"></div>
       </div>
     </div>
 
@@ -186,14 +197,37 @@
         <div class="grid-3">
           <div><label>Start (ISO)<input id="start-iso" placeholder="2026-03-27T10:00" /></label></div>
           <div><label>End (ISO)<input id="end-iso" placeholder="2026-03-28T10:00" /></label></div>
-          <div style="display:flex;align-items:flex-end;"><button onclick="setElection()">Set Window</button></div>
+          <div><label>Election ID<input id="election-id" placeholder="LS2026" /></label></div>
         </div>
+        <div style="margin-top:8px;"><button onclick="setElection()">Set Window</button></div>
         <div class="grid-3" style="margin-top:6px;">
           <div><label>Candidate ID<input id="cand-id" type="number" /></label></div>
           <div><label>Name<input id="cand-name" /></label></div>
           <div><label>Party<input id="cand-party" /></label></div>
         </div>
-        <button style="margin-top:8px;" onclick="addCandidate()">Add Candidate</button>
+        <div class="row" style="margin-top:8px;">
+          <button onclick="addCandidate()">Add Candidate</button>
+          <button class="secondary" onclick="removeCandidate()">Remove Candidate</button>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button class="secondary" onclick="verifyChain()">Verify Blockchain</button>
+          <button class="secondary" onclick="viewBlocks()">View Blocks</button>
+          <button class="secondary" onclick="listVoters()">View Voters</button>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <label style="flex:1;">Tamper Block<input id="tamper-block" type="number" placeholder="1" /></label>
+          <label style="flex:1;">Fake Candidate ID<input id="tamper-cid" type="number" placeholder="99" /></label>
+          <button class="secondary" onclick="tamperSim()">Simulate Tamper</button>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <label style="flex:1;">Result Mode
+            <select id="result-mode">
+              <option value="stop">Stop on Tamper</option>
+              <option value="warn" selected>Warn & Partial</option>
+            </select>
+          </label>
+          <button class="secondary" onclick="loadResults()">Refresh Results</button>
+        </div>
         <div class="message" id="admin-msg"></div>
       </div>
 
@@ -218,10 +252,14 @@
     })();
     const REFRESH_MS = 5000; // auto-refresh interval
     let refreshTimer = null;
-    let state = { voter_id: null, has_voted: false, admin: false, candidates: [] };
+    let state = { voter_id: null, has_voted: false, admin: false, candidates: [], election_status: 'UNKNOWN' };
 
     const qs = id => document.getElementById(id);
     const setMsg = (id, text, ok=false) => { const el=qs(id); el.textContent=text||''; el.style.color= ok ? '#34d399' : '#e5e7eb'; };
+    const passwordValid = (pw) => pw.length >= 6 && pw.length <= 8 &&
+      /[A-Z]/.test(pw) && /[a-z]/.test(pw) &&
+      /[0-9]/.test(pw) && /[!@#$%^&*()_+\-\\[\\]{};':\",.<>/?]/.test(pw);
+    const aadhaarValid = (a) => /^\\d{12}$/.test(a);
 
     async function fetchJSON(url, opts={}) {
       const res = await fetch(url, {headers:{'Content-Type':'application/json'}, ...opts});
@@ -232,12 +270,15 @@
     async function updateStatus() {
       try {
         const s = await fetchJSON(`${API}/api/election/status`, {headers:{}}); 
+        const cfg = await fetchJSON(`${API}/api/election/config`);
         qs('status-text').textContent = s;
-        qs('status-pill-display').textContent = s;
+        qs('status-pill-display').textContent = cfg.election_id ? `${s} (${cfg.election_id})` : s;
+        state.election_status = s;
       }
       catch { 
         qs('status-text').textContent = 'UNKNOWN';
         qs('status-pill-display').textContent = 'UNKNOWN';
+        state.election_status = 'UNKNOWN';
       }
     }
 
@@ -255,13 +296,16 @@
             </div>
           </label>`).join('');
         qs('candidate-list').innerHTML = html || '<span style="color:var(--muted)">No candidates</span>';
-        qs('vote-btn').disabled = state.has_voted || !state.voter_id;
+        const active = state.election_status === 'ACTIVE';
+        qs('vote-btn').disabled = state.has_voted || !state.voter_id || !active;
+        qs('vote-status-note').textContent = active ? '' : 'Voting will open when admin starts the election window.';
       } catch (e) { qs('candidate-list').textContent = 'Failed to load candidates'; }
     }
 
     async function loadResults() {
       try {
-        const data = await fetchJSON(`${API}/api/results`);
+        const mode = qs('result-mode') ? qs('result-mode').value : 'stop';
+        const data = await fetchJSON(`${API}/api/results?mode=${mode}`);
         const rows = Object.entries(data.results || {}).map(([cid,count]) => `<tr><td>${cid}</td><td>${count}</td></tr>`).join('');
         qs('results-table').innerHTML = rows
           ? `<table><thead><tr><th>Candidate</th><th>Votes</th></tr></thead><tbody>${rows}</tbody></table>`
@@ -272,9 +316,13 @@
           tamperEl.textContent = tamper;
           tamperEl.style.color = '#f97316';
           tamperEl.classList.remove('hidden');
+          if (data.tamper_details) {
+            qs('tamper-details').textContent = `Block ${data.tamper_details.tampered_at} | vote ${JSON.stringify(data.tamper_details.vote_data)}`;
+          }
         } else {
           tamperEl.textContent = '';
           tamperEl.classList.add('hidden');
+          qs('tamper-details').textContent = '';
         }
       } catch {
         qs('results-table').innerHTML = '<div class="empty-state">Failed to load results</div>';
@@ -286,8 +334,16 @@
         name: qs('reg-name').value.trim(),
         age: Number(qs('reg-age').value),
         aadhaar: qs('reg-aadhaar').value.trim(),
+        gender: qs('reg-gender').value,
+        constituency: qs('reg-const').value.trim(),
         password: qs('reg-pass').value
       };
+      if (!aadhaarValid(payload.aadhaar)) {
+        return setMsg('reg-msg','Aadhaar must be 12 digits only');
+      }
+      if (!passwordValid(payload.password)) {
+        return setMsg('reg-msg','Password must be 6-8 chars incl upper/lower/number/special');
+      }
       try {
         const data = await fetchJSON(`${API}/api/register`, {method:'POST', body: JSON.stringify(payload)});
         state.voter_id = data.voter_id; state.has_voted = false;
@@ -312,6 +368,7 @@
       if (!state.voter_id) { setMsg('vote-msg','Login first'); return; }
       const choice = document.querySelector('input[name="candidate"]:checked');
       if (!choice) { setMsg('vote-msg','Pick a candidate'); return; }
+      if (state.election_status !== 'ACTIVE') { setMsg('vote-msg','Election not active yet'); return; }
       const payload = { voter_id: state.voter_id, candidate_id: Number(choice.value) };
       try {
         await fetchJSON(`${API}/api/vote`, {method:'POST', body: JSON.stringify(payload)});
@@ -331,8 +388,9 @@
       if (!state.admin) return setMsg('admin-msg','Login as admin first');
       const start = Date.parse(qs('start-iso').value)/1000;
       const end = Date.parse(qs('end-iso').value)/1000;
+      const eid = qs('election-id').value.trim() || "ELC001";
       if (!start || !end) return setMsg('admin-msg','Provide valid start/end');
-      try { await fetchJSON(`${API}/api/admin/election`, {method:'POST', body: JSON.stringify({ election_id:'ELC001', start_time:start, end_time:end })}); setMsg('admin-msg','Election window set', true); await updateStatus(); }
+      try { await fetchJSON(`${API}/api/admin/election`, {method:'POST', body: JSON.stringify({ election_id:eid, start_time:start, end_time:end })}); setMsg('admin-msg','Election window set', true); await updateStatus(); }
       catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
     }
 
@@ -341,6 +399,49 @@
       const payload = { id: Number(qs('cand-id').value), name: qs('cand-name').value.trim(), party: qs('cand-party').value.trim() };
       try { await fetchJSON(`${API}/api/admin/candidate`, {method:'POST', body: JSON.stringify(payload)}); setMsg('admin-msg','Candidate added', true); await loadCandidates(); }
       catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
+    }
+
+    async function removeCandidate() {
+      if (!state.admin) return setMsg('admin-msg','Login as admin first');
+      const cid = Number(qs('cand-id').value);
+      if (!cid) return setMsg('admin-msg','Provide Candidate ID to remove');
+      try { await fetchJSON(`${API}/api/admin/candidate/${cid}`, {method:'DELETE'}); setMsg('admin-msg','Candidate removed', true); await loadCandidates(); }
+      catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
+    }
+
+    async function verifyChain() {
+      try {
+        const data = await fetchJSON(`${API}/api/admin/verify`);
+        if (data.is_valid) setMsg('admin-msg','Blockchain valid', true);
+        else setMsg('admin-msg', `Tampered at block ${data.error_index}`, false);
+      } catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
+    }
+
+    async function viewBlocks() {
+      try {
+        const data = await fetchJSON(`${API}/api/admin/blocks`);
+        setMsg('admin-msg', `Blocks: ${data.chain.length}. Check console for details.`, true);
+        console.table(data.chain);
+      } catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
+    }
+
+    async function listVoters() {
+      try {
+        const data = await fetchJSON(`${API}/api/admin/voters`);
+        setMsg('admin-msg', `Voters: ${data.length}. Check console for list.`, true);
+        console.table(data);
+      } catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
+    }
+
+    async function tamperSim() {
+      if (!state.admin) return setMsg('admin-msg','Login as admin first');
+      const blockIdx = Number(qs('tamper-block').value);
+      const fakeCid = Number(qs('tamper-cid').value);
+      if (Number.isNaN(blockIdx) || Number.isNaN(fakeCid)) return setMsg('admin-msg','Provide block index and fake candidate id');
+      try {
+        const data = await fetchJSON(`${API}/api/admin/tamper?block_index=${blockIdx}&fake_candidate_id=${fakeCid}`, {method:'POST'});
+        setMsg('admin-msg', data.message, true);
+      } catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
     }
 
     async function refreshAll() {
@@ -357,6 +458,7 @@
     // Initial load
     qs('base-url').textContent = API;
     qs('base-url-2').textContent = API;
+    qs('vote-status-note').textContent = 'Voting will open when admin starts the election window.';
     refreshAll();
     startAutoRefresh();
   </script>

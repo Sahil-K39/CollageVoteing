@@ -1,10 +1,12 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Literal
 
 class VoterRegister(BaseModel):
     name: str
     age: int
     aadhaar: str
+    gender: Literal["M","F","O","Male","Female","Other"]
+    constituency: str
     password: str
 
 class ElectionSet(BaseModel):
