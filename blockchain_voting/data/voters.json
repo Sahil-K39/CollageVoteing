@@ -1,0 +1,37 @@
+[
+    {
+        "voter_id": "DEMO01",
+        "name": "Asha Verma",
+        "aadhaar": "2a33349e7e606a8ad2e30e3c84521f9377450cf09083e162e0a9b1480ce0f972",
+        "password": "$2b$12$vDq6YBTuQ56VwYVQVbcEXeWEq2vPJti5KiVZGoI2ZhwFuZSvBcVrG",
+        "has_voted": false
+    },
+    {
+        "voter_id": "DEMO02",
+        "name": "Ravi Menon",
+        "aadhaar": "a383f32115d8294cd570745ee498376247a42dacb33fc258677b7881a54c9e62",
+        "password": "$2b$12$8G3RyHQAC4FKfp10rLNmpefKfi3QxkLAVoraJlqv65WBLrR40N15a",
+        "has_voted": false
+    },
+    {
+        "voter_id": "DEMO03",
+        "name": "Neha Kapoor",
+        "aadhaar": "39d8b874e059ec279fff7583b801dc1bb6c893eb8166073f5f45e55ed91d7c27",
+        "password": "$2b$12$bBVIIZid2G1ARl1Ns3shZu9jLkg9who9/mOCxbIMJh4vAW87F5UCm",
+        "has_voted": false
+    },
+    {
+        "voter_id": "DEMO04",
+        "name": "Imran Shaikh",
+        "aadhaar": "96904f24a93806f87faa640ac47f73c8cd676a3837964919fd81d0329e8d3cbe",
+        "password": "$2b$12$gKLYFEX5MExbx4RvcHLl6up0vpsFLiZwipaB0O2Qp9SMS46Jg3bby",
+        "has_voted": false
+    },
+    {
+        "voter_id": "DEMO05",
+        "name": "Priya Desai",
+        "aadhaar": "e809a1a2809fa5399f66e8213b2d3f33f12e8e611df0da49867f7563aa6fb90f",
+        "password": "$2b$12$KapxS4qqsmzCxKxhEqnkuuIpzIny8pMw3oD7Bk7sCmkcILda/Q8ae",
+        "has_voted": false
+    }
+]

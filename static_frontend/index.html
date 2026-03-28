@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blockchain Voting • Control Panel</title>
+  <style>
+    :root {
+      --bg: #0b1224;
+      --panel: #0f172a;
+      --panel-2: #111827;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --danger: #f87171;
+      --border: #1f2937;
+      --shadow: 0 18px 45px rgba(0,0,0,0.35);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 20%, #1b2643 0%, #0b1224 50%, #070d1a 100%);
+      color: var(--text);
+    }
+    .shell { max-width: 1200px; margin: 0 auto; padding: 28px 20px 48px; }
+    header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .logo {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #6366f1);
+      display: grid; place-items: center; font-weight: 800; color: #0b1224;
+      box-shadow: var(--shadow);
+    }
+    h1 { margin: 0; font-size: 24px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; background: #111827; color: var(--text); font-size: 13px; border: 1px solid var(--border); }
+    .pill.green { background: #0f5132; border-color: #14532d; }
+    .pill.red { background: #7f1d1d; border-color: #991b1b; }
+    .cta { display: flex; gap: 10px; flex-wrap: wrap; }
+    .card {
+      background: linear-gradient(160deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .section-title { margin: 6px 0 4px; font-size: 17px; }
+    p { margin: 0 0 10px; color: var(--muted); }
+    label { display: block; margin: 10px 0 4px; color: var(--muted); font-size: 14px; }
+    input, select {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid var(--border); background: #0b1224; color: var(--text);
+    }
+    button {
+      cursor: pointer; padding: 10px 14px; border-radius: 10px; border: 0;
+      background: var(--accent); color: #0b1224; font-weight: 700;
+      transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+      box-shadow: 0 10px 30px rgba(56,189,248,0.25);
+    }
+    button.secondary { background: #1f2937; color: var(--text); box-shadow: none; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; margin-top: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
+    .message { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #0b1224; color: var(--text); border: 1px dashed var(--border); min-height: 22px; }
+    .hidden { display: none; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text); }
+    th { color: var(--muted); font-weight: 600; }
+    code { background: #111827; padding: 3px 6px; border-radius: 8px; }
+    .hero { margin: 18px 0 10px; }
+    .muted-row { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); }
+    .stat { display: grid; gap: 4px; }
+    .stat span { color: var(--muted); font-size: 13px; }
+    .stat strong { font-size: 16px; }
+    /* Voting list */
+    #candidate-list { display: grid; gap: 10px; padding: 4px 0; }
+    .candidate {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0b1426;
+    }
+    .candidate strong { color: var(--text); }
+    .candidate small { color: var(--muted); display: block; }
+    #results-table table { width: 100%; }
+    #results-table { min-height: 160px; display:grid; align-items:start; }
+    .empty-state {
+      margin-top: 10px;
+      padding: 16px;
+      border-radius: 12px;
+      background: #0b1426;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      text-align: center;
+    }
+    .empty-bar {
+      margin: 12px auto 0;
+      height: 16px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(56,189,248,0.15), rgba(56,189,248,0.35));
+      max-width: 320px;
+      opacity: 0.6;
+    }
+    #candidate-list:empty::after { content: "No candidates loaded."; color: var(--muted); }
+    input[type="radio"] { transform: scale(1.1); accent-color: var(--accent); }
+    @media (max-width: 640px) { header { gap: 10px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="logo">BV</div>
+        <div>
+          <h1>Blockchain Voting Console</h1>
+          <div class="muted-row">
+            <span>API: <code id="base-url">http://127.0.0.1:8300</code></span>
+            <span>| Static UI (no npm)</span>
+          </div>
+        </div>
+      </div>
+      <div class="cta">
+        <div class="pill" id="status-pill">Status: <span class="status" id="status-text">…</span></div>
+        <div class="pill" id="login-pill">Not logged in</div>
+        <button class="secondary" onclick="refreshAll()">Refresh</button>
+      </div>
+    </header>
+
+    <div class="hero">
+      <p>Register voters, log in, cast votes, monitor live tallies, and administer the election from one screen.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title">Voter Registration</div>
+        <p>Issue a new Voter ID. Age & Aadhaar are validated.</p>
+        <label>Name<input id="reg-name" /></label>
+        <label>Age<input id="reg-age" type="number" min="18" /></label>
+        <label>Aadhaar (12 digits)<input id="reg-aadhaar" maxlength="12" /></label>
+        <label>Password<input id="reg-pass" type="password" /></label>
+        <button onclick="register()">Register</button>
+        <div class="message" id="reg-msg"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Voter Login</div>
+        <p>Authenticate to cast a ballot.</p>
+        <label>Voter ID<input id="login-id" /></label>
+        <label>Password<input id="login-pass" type="password" /></label>
+        <button onclick="login()">Login</button>
+        <div class="message" id="login-msg"></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title">Cast Vote</div>
+        <div id="candidate-list">Loading candidates…</div>
+        <button onclick="castVote()" id="vote-btn" disabled>Submit Vote</button>
+        <div class="message" id="vote-msg"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Live Results</div>
+        <div id="results-table">No data yet.</div>
+        <div class="message" id="tamper-msg"></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title">Admin Controls</div>
+        <p>Manage timing and candidates (admin credentials required).</p>
+        <div class="grid-3">
+          <div><label>Admin ID<input id="admin-id" /></label></div>
+          <div><label>Password<input id="admin-pass" type="password" /></label></div>
+          <div style="display:flex;align-items:flex-end;"><button class="secondary" onclick="adminLogin()">Admin Login</button></div>
+        </div>
+        <div class="grid-3">
+          <div><label>Start (ISO)<input id="start-iso" placeholder="2026-03-27T10:00" /></label></div>
+          <div><label>End (ISO)<input id="end-iso" placeholder="2026-03-28T10:00" /></label></div>
+          <div style="display:flex;align-items:flex-end;"><button onclick="setElection()">Set Window</button></div>
+        </div>
+        <div class="grid-3" style="margin-top:6px;">
+          <div><label>Candidate ID<input id="cand-id" type="number" /></label></div>
+          <div><label>Name<input id="cand-name" /></label></div>
+          <div><label>Party<input id="cand-party" /></label></div>
+        </div>
+        <button style="margin-top:8px;" onclick="addCandidate()">Add Candidate</button>
+        <div class="message" id="admin-msg"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Session & Status</div>
+        <div class="stat"><span>Logged in voter</span><strong id="login-pill-display">Not logged in</strong></div>
+        <div class="stat"><span>Election status</span><strong id="status-pill-display">…</strong></div>
+        <div class="stat"><span>API endpoint</span><strong><code id="base-url-2">http://127.0.0.1:8300</code></strong></div>
+        <div class="stat"><span>Tips</span><strong>Refresh after admin updates to see latest candidates and status.</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = (() => {
+      const { protocol, host, hostname } = window.location;
+      // Use local API during dev; otherwise same-origin when deployed.
+      if (hostname === '127.0.0.1' || hostname === 'localhost') {
+        return 'http://127.0.0.1:8300';
+      }
+      return `${protocol}//${host}`;
+    })();
+    const REFRESH_MS = 5000; // auto-refresh interval
+    let refreshTimer = null;
+    let state = { voter_id: null, has_voted: false, admin: false, candidates: [] };
+
+    const qs = id => document.getElementById(id);
+    const setMsg = (id, text, ok=false) => { const el=qs(id); el.textContent=text||''; el.style.color= ok ? '#34d399' : '#e5e7eb'; };
+
+    async function fetchJSON(url, opts={}) {
+      const res = await fetch(url, {headers:{'Content-Type':'application/json'}, ...opts});
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    async function updateStatus() {
+      try {
+        const s = await fetchJSON(`${API}/api/election/status`, {headers:{}}); 
+        qs('status-text').textContent = s;
+        qs('status-pill-display').textContent = s;
+      }
+      catch { 
+        qs('status-text').textContent = 'UNKNOWN';
+        qs('status-pill-display').textContent = 'UNKNOWN';
+      }
+    }
+
+    async function loadCandidates() {
+      try {
+        const list = await fetchJSON(`${API}/api/candidates`);
+        state.candidates = list;
+        const html = list.map(c => `
+          <label class="candidate">
+            <input type="radio" name="candidate" value="${c.id}" ${state.has_voted?'disabled':''} />
+            <div>
+              <strong>${c.name}</strong>
+              <small>${c.party}</small>
+              <small>ID ${c.id}</small>
+            </div>
+          </label>`).join('');
+        qs('candidate-list').innerHTML = html || '<span style="color:var(--muted)">No candidates</span>';
+        qs('vote-btn').disabled = state.has_voted || !state.voter_id;
+      } catch (e) { qs('candidate-list').textContent = 'Failed to load candidates'; }
+    }
+
+    async function loadResults() {
+      try {
+        const data = await fetchJSON(`${API}/api/results`);
+        const rows = Object.entries(data.results || {}).map(([cid,count]) => `<tr><td>${cid}</td><td>${count}</td></tr>`).join('');
+        qs('results-table').innerHTML = rows
+          ? `<table><thead><tr><th>Candidate</th><th>Votes</th></tr></thead><tbody>${rows}</tbody></table>`
+          : `<div class="empty-state">No votes yet<div class="empty-bar"></div></div>`;
+        const tamperEl = qs('tamper-msg');
+        const tamper = data.tamper_status && data.tamper_status !== 'None' ? data.tamper_status : '';
+        if (tamper) {
+          tamperEl.textContent = tamper;
+          tamperEl.style.color = '#f97316';
+          tamperEl.classList.remove('hidden');
+        } else {
+          tamperEl.textContent = '';
+          tamperEl.classList.add('hidden');
+        }
+      } catch {
+        qs('results-table').innerHTML = '<div class="empty-state">Failed to load results</div>';
+      }
+    }
+
+    async function register() {
+      const payload = {
+        name: qs('reg-name').value.trim(),
+        age: Number(qs('reg-age').value),
+        aadhaar: qs('reg-aadhaar').value.trim(),
+        password: qs('reg-pass').value
+      };
+      try {
+        const data = await fetchJSON(`${API}/api/register`, {method:'POST', body: JSON.stringify(payload)});
+        state.voter_id = data.voter_id; state.has_voted = false;
+        qs('login-pill').textContent = `Voter ${data.voter_id}`;
+        setMsg('reg-msg', `Registered. Your Voter ID: ${data.voter_id}`, true);
+      } catch (e) { setMsg('reg-msg', `Error: ${e.message}`); }
+    }
+
+    async function login() {
+      const payload = { id: qs('login-id').value.trim(), password: qs('login-pass').value };
+      try {
+        const data = await fetchJSON(`${API}/api/login`, {method:'POST', body: JSON.stringify(payload)});
+        state.voter_id = data.voter_id; state.has_voted = data.has_voted;
+        qs('login-pill').textContent = `Voter ${data.voter_id} (${data.name||''})`;
+        setMsg('login-msg', 'Logged in', true);
+        await loadCandidates();
+        await loadResults();
+      } catch (e) { setMsg('login-msg', `Error: ${e.message}`); }
+    }
+
+    async function castVote() {
+      if (!state.voter_id) { setMsg('vote-msg','Login first'); return; }
+      const choice = document.querySelector('input[name="candidate"]:checked');
+      if (!choice) { setMsg('vote-msg','Pick a candidate'); return; }
+      const payload = { voter_id: state.voter_id, candidate_id: Number(choice.value) };
+      try {
+        await fetchJSON(`${API}/api/vote`, {method:'POST', body: JSON.stringify(payload)});
+        state.has_voted = true; qs('vote-btn').disabled = true;
+        setMsg('vote-msg','Vote recorded on blockchain', true);
+        await loadResults();
+      } catch (e) { setMsg('vote-msg', `Error: ${e.message}`); }
+    }
+
+    async function adminLogin() {
+      const payload = { id: qs('admin-id').value.trim(), password: qs('admin-pass').value };
+      try { await fetchJSON(`${API}/api/admin/login`, {method:'POST', body: JSON.stringify(payload)}); state.admin=true; setMsg('admin-msg','Admin authenticated', true); }
+      catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
+    }
+
+    async function setElection() {
+      if (!state.admin) return setMsg('admin-msg','Login as admin first');
+      const start = Date.parse(qs('start-iso').value)/1000;
+      const end = Date.parse(qs('end-iso').value)/1000;
+      if (!start || !end) return setMsg('admin-msg','Provide valid start/end');
+      try { await fetchJSON(`${API}/api/admin/election`, {method:'POST', body: JSON.stringify({ election_id:'ELC001', start_time:start, end_time:end })}); setMsg('admin-msg','Election window set', true); await updateStatus(); }
+      catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
+    }
+
+    async function addCandidate() {
+      if (!state.admin) return setMsg('admin-msg','Login as admin first');
+      const payload = { id: Number(qs('cand-id').value), name: qs('cand-name').value.trim(), party: qs('cand-party').value.trim() };
+      try { await fetchJSON(`${API}/api/admin/candidate`, {method:'POST', body: JSON.stringify(payload)}); setMsg('admin-msg','Candidate added', true); await loadCandidates(); }
+      catch (e) { setMsg('admin-msg', `Error: ${e.message}`); }
+    }
+
+    async function refreshAll() {
+      await updateStatus();
+      await loadCandidates();
+      await loadResults();
+    }
+
+    function startAutoRefresh() {
+      if (refreshTimer) return;
+      refreshTimer = setInterval(refreshAll, REFRESH_MS);
+    }
+
+    // Initial load
+    qs('base-url').textContent = API;
+    qs('base-url-2').textContent = API;
+    refreshAll();
+    startAutoRefresh();
+  </script>
+</body>
+</html>
