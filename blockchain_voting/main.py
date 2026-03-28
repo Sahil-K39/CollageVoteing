@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from models import VoterRegister, ElectionSet, Candidate, LoginData, VoteRequest
-from blockchain_logic import Blockchain, hash_sha256, read_json, write_json
+from .models import VoterRegister, ElectionSet, Candidate, LoginData, VoteRequest
+from .blockchain_logic import Blockchain, hash_sha256, read_json, write_json
 import uuid
 from datetime import datetime
 import bcrypt

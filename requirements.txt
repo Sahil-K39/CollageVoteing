@@ -1,0 +1,2 @@
+-r blockchain_voting/requirements.txt
+PyPDF2>=3.0.1
