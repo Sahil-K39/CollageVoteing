@@ -166,7 +166,7 @@ def validate_password(pw: str):
         raise HTTPException(400, "Password needs a lowercase letter")
     if not re.search(r"[0-9]", pw):
         raise HTTPException(400, "Password needs a number")
-    if not re.search(r"[!@#$%^&*()_+\\-=[\\]{};':\",.<>/?]", pw):
+    if all(c.isalnum() for c in pw):
         raise HTTPException(400, "Password needs a special character")
 
 
