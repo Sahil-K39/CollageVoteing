@@ -62,7 +62,7 @@ if STATIC_DIR.exists():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": "1.0.2", "deployed_at": "2026-03-28"}
 
 # --- AUTH & REGISTRATION ---
 

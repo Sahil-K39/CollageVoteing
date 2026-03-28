@@ -121,7 +121,7 @@
         <div>
           <h1>Blockchain Voting Console</h1>
           <div class="muted-row">
-            <span>API: <code id="base-url">http://127.0.0.1:8300</code></span>
+            <span>API: <code id="base-url">…</code></span>
             <span>| Static UI (no npm)</span>
           </div>
         </div>
@@ -235,7 +235,7 @@
         <div class="section-title">Session & Status</div>
         <div class="stat"><span>Logged in voter</span><strong id="login-pill-display">Not logged in</strong></div>
         <div class="stat"><span>Election status</span><strong id="status-pill-display">…</strong></div>
-        <div class="stat"><span>API endpoint</span><strong><code id="base-url-2">http://127.0.0.1:8300</code></strong></div>
+        <div class="stat"><span>API endpoint</span><strong><code id="base-url-2">…</code></strong></div>
         <div class="stat"><span>Tips</span><strong>Refresh after admin updates to see latest candidates and status.</strong></div>
       </div>
     </div>
@@ -258,8 +258,8 @@
     const setMsg = (id, text, ok=false) => { const el=qs(id); el.textContent=text||''; el.style.color= ok ? '#34d399' : '#e5e7eb'; };
     const passwordValid = (pw) => pw.length >= 6 && pw.length <= 8 &&
       /[A-Z]/.test(pw) && /[a-z]/.test(pw) &&
-      /[0-9]/.test(pw) && /[!@#$%^&*()_+\-\\[\\]{};':\",.<>/?]/.test(pw);
-    const aadhaarValid = (a) => /^\\d{12}$/.test(a);
+      /[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw);
+    const aadhaarValid = (a) => /^\d{12}$/.test(a);
 
     async function fetchJSON(url, opts={}) {
       const res = await fetch(url, {headers:{'Content-Type':'application/json'}, ...opts});
